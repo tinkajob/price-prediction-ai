@@ -36,7 +36,7 @@ class Network:
             
             self.layers.append(layer)
 
-    def forward(self, inputs:list):
+    def predict(self, inputs:list):
         for layer in self.layers:
             # All neurons in a layer get the same inputs[which are values of neurons from previous layer], 
             # but because each neuron has different weights they calculate different number.
@@ -45,6 +45,14 @@ class Network:
             inputs = outputs
         # Because the last layer consists of only 1 neuron this is just to return the price, not list with 1 price
         return inputs[0]
+    
+    def evaluate(self, dataset):
+        errors = []
+        for input, target in dataset:
+            prediction = self.predict(input)
+            errors.append(abs(prediction - target))
+        MAE = sum(errors) / len(errors) # Average error
+        return MAE
 
 
 # We load the dataset, then we clean it
@@ -52,8 +60,25 @@ df = pandas.read_csv("houses.csv")
 df = df.dropna()
 df = df[df["price"] > 0]
 
+training_data = df[:3200]
+validation_data = df[3200:]
+
 features = ["bedrooms", "bathrooms", "sqft_living", "sqft_lot", "floors", "waterfront", "view", "condition", "sqft_above", "sqft_basement", "yr_built", "yr_renovated"]
 target = df["price"]
 
-network_size = [len(features), 6, 1]
+training_dataset = [(row[features].values.tolist(), row[target].values.tolist()) for _, row in training_data.iterrows()]
+validation_dataset = [(row[features].values.tolist(), row[target].values.tolist()) for _, row in validation_data.iterrows()]
+
+max_generations = 500
+
+network_size = [len(features), 25, 1]
 population = [Network(network_size) for _ in range(num_of_networks)]
+
+# Training loop
+for generation in range(max_generations):
+    for network in population:
+        network.evaluate(training_dataset)
+
+
+
+    print(f"Completed training generation: {generation}")
