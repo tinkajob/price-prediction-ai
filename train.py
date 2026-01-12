@@ -73,7 +73,8 @@ for generation in range(1, max_generations + 1):
 
     print(f"COMPLETED TRAINING GENERATION: {generation}")
     print(f"    - Best MAE (normalized): {best_mae}")
-    print(f"    - Best MAE (dollars): {norm.invert_value(best_mae, "price"):,.2f}\n")
+    print(f"    - Best MAE (dollars): {norm.invert_value(best_mae, "price"):,.2f}")
+    print(f"    - Patience used: {gens_without_improvement}\n")
 
     survivors = [network for network, mae in gen_performance[:survivors_count]]
 
