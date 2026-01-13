@@ -10,10 +10,10 @@ def mutate_genes(genes, mutation_rate = 0.1, mutation_strength = 0.1):
             new_bias = neuron[1]
             for weight in neuron[0]:
                 if random.random() < mutation_rate:
-                    weight += random.gauss(0, mutation_strength)
+                    weight += random.uniform(-mutation_strength, mutation_strength)
                 new_weights.append(weight)
             if random.random() < mutation_rate:
-                new_bias += random.gauss(0, mutation_strength)
+                new_bias += random.uniform(-mutation_strength, mutation_strength)
             layer_genes.append((new_weights, new_bias))
         new_genes.append(layer_genes)
     return new_genes

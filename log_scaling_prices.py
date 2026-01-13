@@ -1,4 +1,7 @@
+# This is a version of normal evolution with log-scaled prices, and gradually descending mutation strength
+
 import pandas
+import numpy as np
 from utils.utils import *
 from modules.normalizer import Normalizer
 from modules.network import Network
@@ -17,6 +20,7 @@ patience = parameters["patience"]
 
 mutation_rate = parameters["mutation_rate"]
 mutation_strength = parameters["mutation_strength"]
+mutation_strength_decay = parameters["mutation_strength_decay"]
 
 norm = Normalizer()
 
@@ -29,13 +33,14 @@ training_data = df[:3200]
 validation_data = df[3200:]
 
 # We 'configure' normalizer only on training set, not on test set, and use only this configuration to normalize BOTH subsets (so that they are normalized in the same way)
-norm.fit(df[:3200], features + target) 
-training_data = norm.transform(training_data, features + target)
-validation_data = norm.transform(validation_data, features + target)
+# We don't normalize the price as we use log-scaling!
+norm.fit(df[:3200], features) 
+training_data = norm.transform(training_data, features)
+validation_data = norm.transform(validation_data, features)
 
 # This are lists of tuples: ([a, b, c, d, e, f], g)
-training_dataset = [(row[features].values.tolist(), row[target[0]]) for _, row in training_data.iterrows()]
-validation_dataset = [(row[features].values.tolist(), row[target[0]]) for _, row in validation_data.iterrows()]
+training_dataset = [(row[features].values.tolist(), np.log1p(row[target[0]])) for _, row in training_data.iterrows()]
+validation_dataset = [(row[features].values.tolist(), np.log1p(row[target[0]])) for _, row in validation_data.iterrows()]
 
 network_size = [len(features), 25, 1]
 population = [Network(network_size) for _ in range(population_size)]
@@ -51,8 +56,8 @@ for generation in range(1, max_generations + 1):
     gen_performance = []
     for child in population:
         # This mae should be as low as possible
-        norm_mae = child.evaluate(training_dataset)
-        gen_performance.append((child, norm_mae))
+        log_mae = child.evaluate(training_dataset, uses_log_scaling = True)
+        gen_performance.append((child, log_mae))
 
     # After we have finished training a generation, we sort networks by their performance, and pick top n survivors
     gen_performance.sort(key = lambda x:x[1])
@@ -72,8 +77,7 @@ for generation in range(1, max_generations + 1):
     best_mae = gen_performance[0][1]
 
     print(f"COMPLETED TRAINING GENERATION: {generation}")
-    print(f"    - Best MAE (normalized): {best_mae}")
-    print(f"    - Best MAE (dollars): {norm.invert_value(best_mae, "price"):,.2f}")
+    print(f"    - Best MAE (dollars): {best_mae:,.2f}")
     print(f"    - Patience used: {gens_without_improvement}\n")
 
     survivors = [network for network, mae in gen_performance[:survivors_count]]
@@ -84,14 +88,13 @@ for generation in range(1, max_generations + 1):
     for child in remaining:
         parent = random.choice(survivors)
         genes = parent.get_genes()
-        child.mutate_genes(genes, mutation_rate = mutation_rate, mutation_strength = mutation_strength)
+        child.mutate_genes(genes, mutation_rate = mutation_rate, mutation_strength = mutation_strength * (mutation_strength_decay ** max(0, generation - 20)))
 
     population = survivors + remaining
 
 print("================================\n      VALIDATING MODEL\n================================\n")
-validation_mae = best_model.evaluate(validation_dataset)
-print(f"Model's performance: {validation_mae} (normalized MAE)")
-print(f"Model's performance: {norm.invert_value(validation_mae, "price"):,.2f} (MAE in dollars)")
+validation_mae = best_model.evaluate(validation_dataset, uses_log_scaling = True)
+print(f"Model's performance: {validation_mae:,.2f} (MAE in dollars)")
 
 best_model_genes = best_model.get_genes()
 metrics = {

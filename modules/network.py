@@ -1,4 +1,5 @@
 import random
+import numpy as np
 from .neuron import Neuron
 
 class Network:
@@ -29,11 +30,17 @@ class Network:
         # Because the last layer consists of only 1 neuron this is just to return the price, not list with 1 price
         return inputs[0]
     
-    def evaluate(self, dataset):
+    def evaluate(self, dataset, uses_log_scaling = False):
         errors = []
         
         for input, target in dataset:
             prediction = self.predict(input)
+            
+            # If we use log-scaling we don't normalize the price (in the dataset)
+            if uses_log_scaling:
+                prediction = np.expm1(prediction)
+                target = np.expm1(target)
+                
             errors.append(abs(prediction - target))
         
         MAE = sum(errors) / len(errors) # Average error
@@ -61,3 +68,26 @@ class Network:
             return lambda x:x # Linear for the output
         else:
             return lambda x: max(0,x) # ReLU for the hidden layers
+        
+    def mutate_genes(self, mutation_rate = 0.1, mutation_strength = 0.1, use_gaussian_dist = False):
+        new_genes = []
+        for layer in self.genes:
+            layer_genes = []
+            for neuron in layer:
+                new_weights = []
+                new_bias = neuron[1]
+                for weight in neuron[0]:
+                    if random.random() < mutation_rate:
+                        if use_gaussian_dist:
+                            weight = random.gauss(0, mutation_strength)
+                        else:
+                            weight += random.uniform(-mutation_strength, mutation_strength)
+                    new_weights.append(weight)
+                if random.random() < mutation_rate:
+                    if use_gaussian_dist:
+                        new_bias = random.gauss(0, mutation_strength)
+                    else:
+                        new_bias += random.uniform(-mutation_strength, mutation_strength)
+                layer_genes.append((new_weights, new_bias))
+            new_genes.append(layer_genes)
+        self.genes = new_genes
