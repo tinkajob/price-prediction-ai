@@ -67,27 +67,47 @@ class Network:
         if index == total_layers - 1:
             return lambda x:x # Linear for the output
         else:
-            return lambda x: max(0,x) # ReLU for the hidden layers
+            return lambda x: x if x > 0 else x * 0.1 # Leaky ReLU for the hidden layers
         
-    def mutate_genes(self, mutation_rate = 0.1, mutation_strength = 0.1, use_gaussian_dist = False):
+    def mutate_genes(self, genes, mutation_rate = 0.1, mutation_strength = 0.1, use_gaussian_dist = False):
+        """
+        Mutate a given set of genes (weights and biases) and return a new set of genes.
+        
+        Parameters:
+        - genes: list of layers, each layer is a list of [weights, bias] pairs
+        - mutation_rate: probability of mutating each weight/bias
+        - mutation_strength: maximum mutation magnitude
+        - use_gaussian_dist: if True, use Gaussian mutation; otherwise uniform
+        
+        Returns:
+        - new_genes: mutated copy of the input genes
+        """
         new_genes = []
-        for layer in self.genes:
+
+        for layer in genes:
             layer_genes = []
-            for neuron in layer:
+            for weights, bias in layer:
                 new_weights = []
-                new_bias = neuron[1]
-                for weight in neuron[0]:
+                for w in weights:
                     if random.random() < mutation_rate:
                         if use_gaussian_dist:
-                            weight = random.gauss(0, mutation_strength)
+                            w += random.gauss(0, mutation_strength)
                         else:
-                            weight += random.uniform(-mutation_strength, mutation_strength)
-                    new_weights.append(weight)
+                            w += random.uniform(-mutation_strength, mutation_strength)
+                    # Clamp weight
+                    w = max(min(w, 5.0), -5.0)
+                    new_weights.append(w)
+
+                # Mutate bias
                 if random.random() < mutation_rate:
                     if use_gaussian_dist:
-                        new_bias = random.gauss(0, mutation_strength)
+                        bias += random.gauss(0, mutation_strength)
                     else:
-                        new_bias += random.uniform(-mutation_strength, mutation_strength)
-                layer_genes.append((new_weights, new_bias))
+                        bias += random.uniform(-mutation_strength, mutation_strength)
+                # Clamp bias
+                bias = max(min(bias, 5.0), -5.0)
+
+                layer_genes.append([new_weights, bias])
             new_genes.append(layer_genes)
-        self.genes = new_genes
+
+        return new_genes

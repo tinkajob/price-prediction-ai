@@ -1,6 +1,6 @@
-# This is a version of normal evolution with log-scaled prices, and gradually descending mutation strength
+# This is a version of normal evolution with log-scaled prices, and gradually descending mutation strength, and Leaky ReLU
 
-import pandas
+import pandas, random
 import numpy as np
 from utils.utils import *
 from modules.normalizer import Normalizer
@@ -88,8 +88,9 @@ for generation in range(1, max_generations + 1):
     for child in remaining:
         parent = random.choice(survivors)
         genes = parent.get_genes()
-        child.mutate_genes(genes, mutation_rate = mutation_rate, mutation_strength = mutation_strength * (mutation_strength_decay ** max(0, generation - 20)))
-
+        mutated_genes = child.mutate_genes(genes, mutation_rate = mutation_rate, mutation_strength = mutation_strength * (mutation_strength_decay ** max(0, generation - 20)), use_gaussian_dist = True)
+        child.set_genes(mutated_genes)
+    
     population = survivors + remaining
 
 print("================================\n      VALIDATING MODEL\n================================\n")

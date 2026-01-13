@@ -1,4 +1,4 @@
-import pandas
+import pandas, random
 from utils.utils import *
 from modules.normalizer import Normalizer
 from modules.network import Network
@@ -84,7 +84,8 @@ for generation in range(1, max_generations + 1):
     for child in remaining:
         parent = random.choice(survivors)
         genes = parent.get_genes()
-        child.mutate_genes(genes, mutation_rate = mutation_rate, mutation_strength = mutation_strength)
+        mutated_genes = child.mutate_genes(genes, mutation_rate = mutation_rate, mutation_strength = mutation_strength)
+        child.set_genes(mutated_genes)
 
     population = survivors + remaining
 

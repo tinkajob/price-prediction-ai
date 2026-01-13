@@ -1,22 +1,5 @@
-import random,json, os
+import json, os
 from datetime import datetime
-
-def mutate_genes(genes, mutation_rate = 0.1, mutation_strength = 0.1):
-    new_genes = []
-    for layer in genes:
-        layer_genes = []
-        for neuron in layer:
-            new_weights = []
-            new_bias = neuron[1]
-            for weight in neuron[0]:
-                if random.random() < mutation_rate:
-                    weight += random.uniform(-mutation_strength, mutation_strength)
-                new_weights.append(weight)
-            if random.random() < mutation_rate:
-                new_bias += random.uniform(-mutation_strength, mutation_strength)
-            layer_genes.append((new_weights, new_bias))
-        new_genes.append(layer_genes)
-    return new_genes
 
 def load_json(path):
     with open(path) as file:
